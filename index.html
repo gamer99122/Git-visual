@@ -551,10 +551,12 @@ function render(s, hl=[]){
       g=document.createElementNS(NS,'g'); layers[it.layer].appendChild(g); live.set(it.k,g);
       g.style.transition='none'; g.style.transform=tf(it.from||it); g.style.opacity=0;
       g.getBoundingClientRect();
-      requestAnimationFrame(()=>{ g.style.transition=''; g.style.transform=tf(it); g.style.opacity=''; });
+      // apply the latest target in the next frame, so a quick second render isn't overwritten
+      requestAnimationFrame(()=>{ g.style.transition=''; g.style.transform=g._tf; if(!g._gone) g.style.opacity=''; });
     } else {
       clearTimeout(g._t); g._gone=false; g.style.opacity=''; g.style.transform=tf(it);
     }
+    g._tf=tf(it);
     if(g._h!==it.html){ g.innerHTML=it.html; g._h=it.html; }
     g.setAttribute('class','item '+it.cls+(hl.includes(it.k)?' hl':''));
   }
