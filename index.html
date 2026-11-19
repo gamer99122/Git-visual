@@ -206,7 +206,7 @@ const CMDS = [
  desc:'查詢任何指令的說明文件。忘記參數時最好用。',
  usage:[['git help','列出常用指令'],['git help add','開啟 git add 的完整說明'],['git add -h','在終端機顯示簡短說明']],
  init:base(1), intro:'不確定指令怎麼用？問 Git 自己。',
- steps:[{cmd:'git help -a',out:'usage: git [--version] [--help] <command> [<args>]\n\n   add      Add file contents to the index\n   commit   Record changes to the repository\n   status   Show the working tree status\n   ...',text:'help 只顯示說明，不改變儲存庫。git help <指令> 會開啟該指令的完整手冊頁面。'}]},
+ steps:[{cmd:'git help',out:'usage: git [-v | --version] [-h | --help] <command> [<args>]\n\n   add      Add file contents to the index\n   commit   Record changes to the repository\n   status   Show the working tree status\n   ...',text:'help 只顯示說明，不改變儲存庫。git help <指令> 會開啟該指令的完整手冊頁面，git help -a 列出所有指令。'}]},
 
 // 基本操作
 {id:'status',cat:'日常操作',name:'git status',days:['03','04','07','13'],
@@ -347,7 +347,7 @@ const CMDS = [
  usage:[['git reset HEAD^','退回上一版，變更留在工作目錄'],['git reset [file]','把檔案移出暫存區（取消 add），新版 Git 可用 git restore --staged']],
  init:()=>{ const s=base(4)(); F(s,'c','into','A','c.txt',{into:'C4'}); return s; },
  intro:'剛 commit 了 C4，但想重新整理要 add 哪些檔案。',
- steps:[{cmd:'git reset HEAD^',out:'Unstaged changes after reset:\n?? c.txt',hl:['r:L:master'],text:'master 退回 C3，C4 的變更回到工作目錄（不在暫存區）。檔案內容完全沒丟。',do:s=>{ s.L.refs.master='C3'; s.L.c.C4.ghost=true; mv(s,'c','work','U'); }}]},
+ steps:[{cmd:'git reset HEAD^',hl:['r:L:master'],text:'master 退回 C3，C4 的變更回到工作目錄（不在暫存區）。c.txt 是 C4 才新增的檔案，所以變回 U（未追蹤）。檔案內容完全沒丟。',do:s=>{ s.L.refs.master='C3'; s.L.c.C4.ghost=true; mv(s,'c','work','U'); }}]},
 {id:'reset-hard',cat:'修正歷史',name:'git reset --hard',days:['16','18'],
  desc:'分支、暫存區、工作目錄全部還原成指定 commit 的樣子。未 commit 的修改會直接消失，請小心！',
  usage:[['git reset --hard','放棄所有未 commit 的修改'],['git reset --hard "HEAD^"','退回上一版並丟掉一切變更'],['git reset --hard ORIG_HEAD','反悔：回到 reset 之前的位置']],
@@ -481,7 +481,7 @@ const CMDS = [
  intro:'C4 已經沒有任何分支指向它（例如被 reset 掉了）。',
  steps:[
   {cmd:'git reflog expire --expire=now --all',text:'C4 還被 reflog 記著，所以 gc 不會刪它。先把 reflog 清掉（實務上通常不需要這樣做）。'},
-  {cmd:'git gc --prune=now',out:'Counting objects: 9, done.\nCompressing objects: 100% done.',hl:['z:L'],text:'無法到達的 C4 被真正刪除。預設情況下，Git 會保留這些物件一段時間（約 30～90 天）才清，給你反悔的機會。',do:s=>{ delete s.L.c.C4; }}]},
+  {cmd:'git gc --prune=now',out:'Counting objects: 9, done.\nCompressing objects: 100% done.',hl:['z:L'],text:'無法到達的 C4 被真正刪除。平常不必這樣做：reflog 預設保留 90 天（無法到達的紀錄 30 天），過期後物件還有約 2 週的寬限期才會被 gc 清掉，給你反悔的機會。',do:s=>{ delete s.L.c.C4; }}]},
 {id:'blame',cat:'底層與工具',name:'git blame',days:['30'],
  desc:'逐行顯示檔案內容最後是由哪個 commit、哪位作者修改的。',
  usage:[['git blame [file]','逐行顯示作者'],['git blame -L 10,20 [file]','只看第 10～20 行']],
@@ -498,7 +498,7 @@ const CMDS = [
 const $ = id => document.getElementById(id);
 const layers = {edge:$('Ledge'), node:$('Lnode'), file:$('Lfile')};
 const live = new Map();
-const cpos = (repo,c) => repo==='L' ? [52+c.x*78, 300+c.y*72] : [642+c.x*60, 300+c.y*72];
+const cpos = (repo,c) => repo==='L' ? [52+c.x*84, 330+c.y*72] : [642+c.x*60, 330+c.y*72];
 const esc = t => String(t).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
 function items(s){
@@ -525,7 +525,8 @@ function items(s){
     }
     const stack={};
     const place=(cid,label,cls,k)=>{ const c=r.c[cid]; if(!c) return; const [x,y]=cpos(repo,c), n=stack[cid]=(stack[cid]||0)+1, w=label.length*7+14;
-      out.push({k, layer:'node', x:x-w/2, y:y-17-n*22, cls:'ref '+cls, html:`<rect width="${w}" height="19" rx="4"/><text x="${w/2}" y="14" text-anchor="middle">${esc(label)}</text>`}); };
+      // lane 0 labels stack upward, lower lanes stack downward so they don't cover lane 0
+      out.push({k, layer:'node', x:Math.max(x-w/2, Z[repo].x+4), y:c.y ? y+20+(n-1)*22 : y-17-n*22, cls:'ref '+cls, html:`<rect width="${w}" height="19" rx="4"/><text x="${w/2}" y="14" text-anchor="middle">${esc(label)}</text>`}); };
     for(const [name,cid] of Object.entries(r.refs)){
       place(cid, name.replace('tag:',''), name.startsWith('tag:')?'tag':name.includes('/')?'rbr':'br', `r:${repo}:${name}`);
       if(repo==='L' && s.L.head===name) place(cid,'HEAD','head','r:L:HEAD');
