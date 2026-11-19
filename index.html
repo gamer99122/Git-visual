@@ -126,6 +126,7 @@ td:first-child{white-space:nowrap;font-family:ui-monospace,Consolas,monospace;co
 </aside>
 <main>
   <div class="head"><h2 id="title"></h2><p id="desc"></p><div class="days" id="days"></div></div>
+  <p>每段動畫都是獨立範例。C1、C2 是示意用的 commit 編號，實際操作請用 <code>git log --oneline</code> 查到的 ID。範例使用 master，請以你的分支名稱為準。</p>
   <div class="card">
     <svg id="scene" viewBox="0 0 900 520" role="img" aria-label="Git 狀態動畫">
       <g id="zones"></g><g id="Ledge"></g><g id="Lnode"></g><g id="Lfile"></g>
@@ -133,9 +134,10 @@ td:first-child{white-space:nowrap;font-family:ui-monospace,Consolas,monospace;co
     <div class="legend">
       <span><b style="color:var(--st-U)">U</b> 未追蹤</span><span><b style="color:var(--st-M)">M</b> 已修改</span>
       <span><b style="color:var(--st-A)">A</b> 新增</span><span><b style="color:var(--st-D)">D</b> 刪除</span><span><b style="color:var(--st-R)">R</b> 改名</span>
-      <span style="color:var(--br)">■ 本地分支</span><span style="color:var(--rbr)">■ 遠端追蹤分支</span><span style="color:var(--tag)">■ 標籤</span><span>■ HEAD（目前位置）</span><span>虛線 commit = 已沒有參照指向</span>
+      <span style="color:var(--br)">■ 本地分支</span><span style="color:var(--rbr)">■ 遠端追蹤分支</span><span style="color:var(--tag)">■ 標籤</span><span>■ HEAD（目前位置）</span><span>虛線 commit = 從圖中的分支或標籤已無法沿歷史到達</span>
     </div>
   </div>
+  <p>卡片只顯示範例相關的檔案或變更。<code>git add</code> 將當下的內容存入索引，原檔仍留在工作目錄。<code>git commit</code> 將索引的完整快照存成一個版本。</p>
   <div class="ctrl">
     <button id="first" title="從頭開始">⏮</button>
     <button id="prev" title="上一步 (←)">◀</button>
@@ -237,7 +239,7 @@ const CMDS = [
  init:()=>{ const s=base(2)(); F(s,'i','work','M','index.html'); F(s,'c','work','U','style.css'); F(s,'t','work','U','todo.txt'); return s; },
  intro:'修改了 index.html，又新增了 style.css 與 todo.txt，它們都還在工作目錄。',
  steps:[
-  {cmd:'git add index.html',hl:['f:i'],text:'index.html 的變更被複製到暫存區。注意 commit 還沒產生，本地儲存庫完全沒變。',do:s=>mv(s,'i','stage')},
+  {cmd:'git add index.html',hl:['f:i'],text:'index.html 的變更被複製到暫存區。注意 commit 還沒產生，分支仍指向原本的 commit。原檔仍留在工作目錄，再編輯後需要重新 add 才會更新索引。',do:s=>mv(s,'i','stage')},
   {cmd:'git add style.css',hl:['f:c'],text:'新檔案被加入暫存區後，狀態從 U（未追蹤）變成 A（新增），從此 Git 會追蹤它。',do:s=>mv(s,'c','stage','A')},
   {cmd:'git status -s',hl:['z:stage'],out:'M  index.html\nA  style.css\n?? todo.txt',text:'暫存區就像「購物車」：只有放進去的東西才會在下次 commit 被結帳。todo.txt 沒有 add，所以不會被 commit。'}]},
 {id:'commit',cat:'日常操作',name:'git commit',days:['04','07','08'],
@@ -260,7 +262,7 @@ const CMDS = [
   {cmd:'git log --oneline --graph --all',hl:['c:L:C1','c:L:C2','c:L:C3','c:L:C4'],out:'* C4 (feature) feature 功能\n| * C3 (HEAD -> master) 第三版\n|/\n* C2 第二版\n* C1 初始版本',text:'加上 --all 會列出所有分支，--graph 用文字畫出分岔，跟上面的圖一模一樣。'}]},
 {id:'diff',cat:'日常操作',name:'git diff',days:['07','09'],
  desc:'比較差異。比較的「兩邊」取決於參數：工作目錄、暫存區、或任兩個 commit。',
- usage:[['git diff','工作目錄 vs 暫存區（還沒 add 的變更）'],['git diff --cached','暫存區 vs HEAD（已 add、即將 commit 的變更），--staged 同義'],['git diff HEAD','工作目錄 vs HEAD（所有變更）'],['git diff commit1 commit2','比較兩個版本']],
+ usage:[['git diff','工作目錄 vs 暫存區（還沒 add 的變更）'],['git diff --cached','暫存區 vs HEAD（已 add、即將 commit 的變更），--staged 同義'],['git diff HEAD','工作目錄 vs HEAD（已追蹤的變更，包含已暫存的新增）'],['git diff commit1 commit2','比較兩個版本']],
  init:()=>{ const s=base(2)(); F(s,'a','work','M','a.txt'); F(s,'b','stage','M','b.txt'); return s; },
  intro:'a.txt 改了沒 add；b.txt 改了也 add 了。',
  steps:[
@@ -322,7 +324,7 @@ const CMDS = [
  init:()=>{ const s=base(2)(); C(s,'C3',['C2'],2,1,{m:'feature'}); s.L.refs.feature='C3'; C(s,'C4',['C2'],2,0,{m:'master 的修改'}); s.L.refs.master='C4'; F(s,'fj','into','','feature.js',{into:'C3'}); return s; },
  intro:'master 與 feature 從 C2 分岔後各自有新的 commit。目前在 master。',
  steps:[
-  {cmd:'git merge feature',out:"Merge made by the 'ort' strategy.\n feature.js | 10 ++++",hl:['c:L:C5'],text:'Git 找到共同祖先 C2，把兩邊的變更合在一起，建立合併 commit C5（有 C4、C3 兩個父親）。master 前進到 C5，feature 保持不動。若兩邊改到同一行，就會產生衝突，需要手動解決後再 add + commit。',
+  {cmd:'git merge feature',out:"Merge made by the 'ort' strategy.\n feature.js | 10 ++++",hl:['c:L:C5'],text:'Git 找到共同祖先 C2，把兩邊的變更合在一起，建立合併 commit C5（有 C4、C3 兩個父親）。master 前進到 C5，feature 保持不動。若兩邊對同一處做了 Git 無法自動整合的修改，就會產生衝突，需要手動解決後再 add + commit。',
    do:s=>{ s.L.c.C5={p:['C4','C3'],x:3,y:0,m:"Merge branch 'feature'"}; s.L.refs.master='C5'; mv(s,'fj','work'); }}]},
 {id:'merge-ff',cat:'分支',name:'git merge（快轉）',days:['17'],
  desc:'如果目前分支沒有新的 commit，合併時 Git 只要把分支標籤往前「快轉」(fast-forward)，不會產生合併 commit。',
@@ -337,7 +339,7 @@ const CMDS = [
  steps:[
   {cmd:'git tag v1.0',hl:['r:L:tag:v1.0'],text:'在 HEAD（C3）貼上 v1.0 標籤。',do:s=>{s.L.refs['tag:v1.0']='C3'}},
   {cmd:'git tag v0.9 C2 -a -m "Beta 版"',hl:['r:L:tag:v0.9'],text:'也可以替過去的 commit 貼標籤，-a 建立帶有說明的標示標籤。',do:s=>{s.L.refs['tag:v0.9']='C2'}},
-  {cmd:'git commit -m "繼續開發"',hl:['r:L:master','r:L:tag:v1.0'],text:'新 commit 時 master 往前走，但標籤 v1.0 留在原地。這就是標籤與分支最大的差別。',do:s=>commit(s,'C4',3,0,'繼續開發')}]},
+  {cmd:'git commit --allow-empty -m "繼續開發"',hl:['r:L:master','r:L:tag:v1.0'],text:'這裡用 --allow-empty 建立無檔案變更的示範 commit。master 往前走，但標籤 v1.0 留在原地。這就是標籤與分支最大的差別。',do:s=>commit(s,'C4',3,0,'繼續開發')}]},
 {id:'stash',cat:'分支',name:'git stash',days:['13','20'],
  desc:'把還沒 commit 的修改（工作目錄 + 暫存區）先收起來，讓工作目錄變乾淨，晚點再拿回來。適合「做到一半被叫去修 bug」。',
  usage:[['git stash','收起已追蹤檔案的修改'],['git stash -u','連未追蹤的檔案一起收'],['git stash save -u <message>','附上說明'],['git stash list','列出所有 stash'],['git stash pop','取回最新的 stash 並刪除它'],['git stash apply "stash@{1}"','取回指定 stash 但保留它'],['git stash drop "stash@{1}"','刪除指定 stash'],['git stash clear','清空所有 stash']],
@@ -351,32 +353,32 @@ const CMDS = [
 // 修正歷史
 {id:'reset-soft',cat:'修正歷史',name:'git reset --soft',days:['18','07'],
  desc:'把目前分支移回指定的 commit，被「退掉」的變更保留在暫存區。適合想重新 commit。',
- usage:[['git reset --soft "HEAD^"','退回上一版，變更留在暫存區'],['（三種模式比較）','--soft 只動分支；--mixed 再清暫存區；--hard 連工作目錄也還原']],
+ usage:[['git reset --soft "HEAD^"','退回上一版，變更留在暫存區'],['（三種模式比較）','--soft 只動分支；--mixed 也將索引重設成目標版本；--hard 連工作目錄也還原']],
  init:()=>{ const s=base(4)(); F(s,'c','into','A','c.txt',{into:'C4'}); return s; },
  intro:'剛 commit 了 C4（新增 c.txt），但想重來。',
  steps:[{cmd:'git reset --soft HEAD^',hl:['r:L:master'],text:'master 退回 C3，C4 沒有分支指向了（變成虛線）。C4 的變更 c.txt 回到暫存區，馬上就能重新 commit。',do:s=>{ s.L.refs.master='C3'; s.L.c.C4.ghost=true; mv(s,'c','stage'); }}]},
 {id:'reset-mixed',cat:'修正歷史',name:'git reset（--mixed）',days:['04','18'],
- desc:'預設模式。分支移回指定 commit，變更退回工作目錄（暫存區也清掉）。也常用來「取消 add」。',
+ desc:'預設模式。分支指向指定 commit，索引重設成該版本的快照，工作目錄內容原樣保留。也常用來「取消 add」。',
  usage:[['git reset HEAD^','退回上一版，變更留在工作目錄'],['git reset [file]','把檔案移出暫存區（取消 add），新版 Git 可用 git restore --staged']],
  init:()=>{ const s=base(4)(); F(s,'c','into','A','c.txt',{into:'C4'}); return s; },
  intro:'剛 commit 了 C4，但想重新整理要 add 哪些檔案。',
  steps:[{cmd:'git reset HEAD^',hl:['r:L:master'],text:'master 退回 C3，C4 的變更回到工作目錄（不在暫存區）。c.txt 是 C4 才新增的檔案，所以變回 U（未追蹤）。檔案內容完全沒丟。',do:s=>{ s.L.refs.master='C3'; s.L.c.C4.ghost=true; mv(s,'c','work','U'); }}]},
 {id:'reset-hard',cat:'修正歷史',name:'git reset --hard',days:['16','18'],
  desc:'分支、暫存區、工作目錄全部還原成指定 commit 的樣子。未 commit 的修改會直接消失，請小心！',
- usage:[['git reset --hard','放棄所有未 commit 的修改'],['git reset --hard "HEAD^"','退回上一版並丟掉一切變更'],['git reset --hard ORIG_HEAD','反悔：回到 reset 之前的位置']],
- init:()=>{ const s=base(4)(); F(s,'c','into','A','c.txt',{into:'C4'}); F(s,'x','work','M','x.txt'); return s; },
+ usage:[['git reset --hard','丟棄已追蹤檔案的未提交變更，也可能刪除妨礙還原的未追蹤檔案'],['git reset --hard "HEAD^"','退回上一版並丟掉一切變更'],['git reset --hard ORIG_HEAD','反悔：回到 reset 之前的位置']],
+ init:()=>{ const s=base(4)(); F(s,'c','work','','c.txt'); F(s,'x','work','M','x.txt'); return s; },
  intro:'目前在 C4，工作目錄還有一個未 commit 的 x.txt 修改。',
  steps:[
-  {cmd:'git reset --hard HEAD^',out:'HEAD is now at C3 第三版',hl:['r:L:master'],text:'master 退回 C3，工作目錄被完全還原：x.txt 的修改永遠消失了（沒 commit 過，救不回來）。C4 變成虛線，但還存在。',do:s=>{ s.L.refs.master='C3'; s.L.c.C4.ghost=true; del(s,'x'); }},
-  {cmd:'git reset --hard ORIG_HEAD',out:'HEAD is now at C4',hl:['c:L:C4'],text:'ORIG_HEAD 記錄了 reset 前的位置，所以 commit 過的 C4 可以救回來（也可以用 reflog）。',do:s=>{ s.L.refs.master='C4'; s.L.c.C4.ghost=false; }}]},
+  {cmd:'git reset --hard HEAD^',out:'HEAD is now at C3 第三版',hl:['r:L:master'],text:'master 退回 C3，工作目錄被完全還原：x.txt 的修改永遠消失了（這次未暫存的修改無法靠 reflog 找回）。C4 變成虛線，但還存在。',do:s=>{ s.L.refs.master='C3'; s.L.c.C4.ghost=true; into(s,'c','C4'); del(s,'x'); }},
+  {cmd:'git reset --hard ORIG_HEAD',out:'HEAD is now at C4',hl:['c:L:C4'],text:'ORIG_HEAD 記錄了 reset 前的位置，所以 commit 過的 C4 可以救回來（也可以用 reflog）。',do:s=>{ s.L.refs.master='C4'; s.L.c.C4.ghost=false; mv(s,'c','work'); }}]},
 {id:'amend',cat:'修正歷史',name:'git commit --amend',days:['18'],
  desc:'修改「最後一次」commit：補檔案或改訊息。實際上會產生一個新的 commit 取代舊的。',
- usage:[['git commit --amend','把暫存區內容併入最後一次 commit，並可修改訊息'],['git commit --amend -m "新訊息"','只改訊息'],['（注意）','已經 push 出去的 commit 不要 amend']],
+ usage:[['git commit --amend','把暫存區內容併入最後一次 commit，並可修改訊息'],['git commit --amend -m "新訊息"','指定新訊息；若有暫存變更，也會一起提交'],['（注意）','已經 push 出去的 commit 不要 amend']],
  init:()=>{ const s=base(3)(); F(s,'f','work','U','forgot.txt'); return s; },
  intro:'剛 commit 了 C3，才發現忘了加 forgot.txt。',
  steps:[
   {cmd:'git add forgot.txt',hl:['f:f'],do:s=>mv(s,'f','stage','A'),text:'先把漏掉的檔案加入暫存區。'},
-  {cmd:'git commit --amend',hl:["c:L:C3'"],text:"Git 用「C3 的內容 + 暫存區」建立新的 C3'，master 改指向它。舊的 C3 被取代（虛線）。歷史看起來就像從沒忘記過。",
+  {cmd:'git commit --amend',hl:["c:L:C3'"],text:"Git 用目前索引的完整快照建立新的 C3'，master 改指向它。舊的 C3 被取代（虛線）。歷史看起來就像從沒忘記過。",
    do:s=>{ s.L.c["C3'"]={p:['C2'],x:2,y:1,m:'amend',from:'C3'}; s.L.c.C3.ghost=true; s.L.refs.master="C3'"; into(s,'f',"C3'"); }}]},
 {id:'revert',cat:'修正歷史',name:'git revert',days:['20','21'],
  desc:'建立一個「反向」的新 commit 來抵銷某個舊 commit 的變更。不改寫歷史，所以已經 push 的 commit 也能安全使用。',
@@ -405,7 +407,7 @@ const CMDS = [
  init:()=>{ const s=S(); lin(s,4,'L','master',['初始版本','新增功能','修正錯字','再加功能']); return s; },
  intro:'C3 只是修 C2 的錯字，想把它們合成一個 commit 再分享出去。',
  steps:[
-  {cmd:'git rebase -i HEAD~3',out:'# 編輯器開啟：\npick   C2 新增功能\nsquash C3 修正錯字\npick   C4 再加功能',hl:['c:L:C2','c:L:C3','c:L:C4'],text:'Git 打開編輯器列出 C2～C4，把 C3 前面的 pick 改成 squash，代表「併入上一個」。'},
+  {cmd:'git rebase -i HEAD~3',out:'# 將 C3 的 pick 改成 squash 後：\npick   C2 新增功能\nsquash C3 修正錯字\npick   C4 再加功能',hl:['c:L:C2','c:L:C3','c:L:C4'],text:'Git 打開編輯器時，這三筆預設都是 pick。把 C3 改成 squash 並儲存後，Git 會把 C3 併入 C2，並開啟編輯器讓你確認合併後的 commit 訊息。'},
   {cmd:'（存檔並關閉編輯器）',out:'Successfully rebased and updated refs/heads/master.',hl:["c:L:C2'","c:L:C4'"],text:"C2 和 C3 合併成新的 C2'，C4 重新套用成 C4'。歷史從 4 個 commit 變成 3 個。",
    do:s=>{ ['C2','C3','C4'].forEach(k=>s.L.c[k].ghost=true); s.L.c["C2'"]={p:['C1'],x:1,y:1,from:'C2'}; s.L.c["C4'"]={p:["C2'"],x:2,y:1,from:'C4'}; s.L.refs.master="C4'"; }}]},
 {id:'reflog',cat:'修正歷史',name:'git reflog',days:['16','17','23'],
@@ -430,7 +432,7 @@ const CMDS = [
  usage:[['git push origin master','推送 master 到 origin'],['git push -u origin master','第一次推送並設定追蹤，之後只要打 git push'],['git push --all','推送所有分支'],['git push --tags','推送所有標籤'],['git push origin --delete feature','刪除遠端分支']],
  init:()=>{ const s=base(3)(); s.L.refs['origin/master']='C1'; remote(s); lin(s,1,'R'); return s; },
  intro:'本地多了 C2、C3，遠端還停在 C1。紅色 origin/master 是本地記得的「遠端位置」。',
- steps:[{cmd:'git push origin master',out:'To https://github.com/you/project.git\n   C1..C3  master -> master',hl:['r:R:master','r:L:origin/master'],text:'C2、C3 被上傳到遠端，遠端的 master 移到 C3，本地的 origin/master 也跟著更新。如果遠端有你沒有的 commit，push 會被拒絕，要先 pull。',
+ steps:[{cmd:'git push origin master',out:'To https://github.com/you/project.git\n   C1..C3  master -> master',hl:['r:R:master','r:L:origin/master'],text:'C2、C3 被上傳到遠端，遠端的 master 移到 C3，本地的 origin/master 也跟著更新。如果更新無法快轉，普通 push 通常會被拒絕。先 fetch，檢查並整合遠端變更後再推送。',
    do:s=>{ C(s,'C2',['C1'],1,0,{},'R'); C(s,'C3',['C2'],2,0,{},'R'); s.R.refs.master='C3'; s.L.refs['origin/master']='C3'; }}]},
 {id:'fetch',cat:'遠端協作',name:'git fetch',days:['24','25','26','27'],
  desc:'從遠端下載新的 commit，只更新 origin/xxx 等遠端追蹤分支，不會動到你的分支與工作目錄。',
@@ -440,16 +442,16 @@ const CMDS = [
  steps:[
   {cmd:'git fetch',out:'From https://github.com/you/project\n   C2..C4  master -> origin/master',hl:['r:L:origin/master'],text:'C3、C4 下載到本地，origin/master 移到 C4。但你的 master 還在 C2，工作目錄也沒變。fetch 很安全，可以隨時執行。',
    do:s=>{ C(s,'C3',['C2'],2,0); C(s,'C4',['C3'],3,0); s.L.refs['origin/master']='C4'; }},
-  {cmd:'git merge origin/master',out:'Fast-forward',hl:['r:L:master'],text:'確認沒問題後再合併，master 快轉到 C4，同事的新檔案出現在工作目錄。fetch + merge 就等於 pull。',
+  {cmd:'git merge origin/master',out:'Fast-forward',hl:['r:L:master'],text:'確認沒問題後再合併，master 快轉到 C4，同事的新檔案出現在工作目錄。這相當於選擇合併模式的 pull。',
    do:s=>{ s.L.refs.master='C4'; F(s,'n','work','','new.js',{from:'C4'}); }}]},
 {id:'pull',cat:'遠端協作',name:'git pull',days:['24','25','26'],
- desc:'等於 git fetch + git merge：下載遠端的新 commit 並合併到目前分支。',
- usage:[['git pull','從追蹤的遠端分支拉取並合併'],['git pull origin master','指定遠端與分支'],['git pull --rebase','用 rebase 取代 merge，避免多出合併 commit']],
+ desc:'先執行 fetch，再依選項或設定整合。本例用 --no-rebase 明確選擇合併。',
+ usage:[['git pull','從追蹤的遠端分支拉取，再依設定合併或 rebase'],['git pull --no-rebase','拉取後用 merge 整合（本例）'],['git pull origin master','指定遠端與分支'],['git pull --rebase','用 rebase 取代 merge，避免多出合併 commit']],
  init:()=>{ const s=base(2)(); C(s,'C5',['C2'],2,0,{m:'我的修改'}); s.L.refs.master='C5'; s.L.refs['origin/master']='C2'; remote(s); lin(s,2,'R'); C(s,'C3',['C2'],2,0,{m:'同事的修改'},'R'); s.R.refs.master='C3'; return s; },
  intro:'你在本地 commit 了 C5，同事也 push 了 C3 到遠端。',
  steps:[
-  {cmd:'git pull   # 步驟 1：fetch',out:'From https://github.com/you/project\n   C2..C3  master -> origin/master',hl:['r:L:origin/master'],text:'pull 的第一步是 fetch：下載 C3，origin/master 指向 C3。',do:s=>{ C(s,'C3',['C2'],2,1); s.L.refs['origin/master']='C3'; }},
-  {cmd:'git pull   # 步驟 2：merge',out:"Merge made by the 'ort' strategy.",hl:['c:L:C6'],text:'第二步是 merge origin/master：產生合併 commit C6，同時包含你和同事的修改。之後再 git push 就能把 C5、C6 分享出去。',
+  {cmd:'git pull --no-rebase   # 同一指令的第 1 階段：fetch',out:'From https://github.com/you/project\n   C2..C3  master -> origin/master',hl:['r:L:origin/master'],text:'pull 的第一步是 fetch：下載 C3，origin/master 指向 C3。',do:s=>{ C(s,'C3',['C2'],2,1); s.L.refs['origin/master']='C3'; }},
+  {cmd:'（同一指令的第 2 階段：merge）',out:"Merge made by the 'ort' strategy.",hl:['c:L:C6'],text:'第二步是 merge origin/master：產生合併 commit C6，同時包含你和同事的修改。之後再 git push 就能把 C5、C6 分享出去。',
    do:s=>{ s.L.c.C6={p:['C5','C3'],x:3,y:0,m:'Merge'}; s.L.refs.master='C6'; F(s,'n','work','','teammate.js',{from:'C6'}); }}]},
 {id:'ls-remote',cat:'遠端協作',name:'git ls-remote',days:['25'],
  desc:'直接向遠端查詢它有哪些分支與標籤（不下載 commit）。',
@@ -484,7 +486,7 @@ const CMDS = [
  usage:[['git show-ref','列出所有參照'],['git update-ref refs/InitialCommit [object_id]','手動建立一般參照'],['git symbolic-ref HEAD','查看 HEAD 指向哪個分支']],
  init:base(3), intro:'分支和標籤的真面目。',
  steps:[
-  {cmd:'git show-ref',out:'C3 refs/heads/master',hl:['r:L:master'],text:'master 其實就是檔案 .git/refs/heads/master，內容是 C3 的 id。'},
+  {cmd:'git show-ref',out:'C3 refs/heads/master',hl:['r:L:master'],text:'refs/heads/master 是 master 分支的完整參照名稱，目前指向 C3。'},
   {cmd:'git update-ref refs/InitialCommit C1',hl:['r:L:InitialCommit'],text:'手動建立一個參照指向 C1，之後可以用 InitialCommit 這個名字代替 C1。',do:s=>{s.L.refs.InitialCommit='C1'}},
   {cmd:'git symbolic-ref HEAD',out:'refs/heads/master',hl:['r:L:HEAD'],text:'HEAD 不是直接存 commit id，而是存「ref: refs/heads/master」，所以 commit 時是 master 在前進，HEAD 跟著走。'}]},
 {id:'gc',cat:'底層與工具',name:'git gc',days:['01','05','16'],
@@ -494,7 +496,7 @@ const CMDS = [
  intro:'C4 已經沒有任何分支指向它（例如被 reset 掉了）。',
  steps:[
   {cmd:'git reflog expire --expire=now --all',text:'C4 還被 reflog 記著，所以 gc 不會刪它。先把 reflog 清掉（實務上通常不需要這樣做）。'},
-  {cmd:'git gc --prune=now',out:'Counting objects: 9, done.\nCompressing objects: 100% done.',hl:['z:L'],text:'無法到達的 C4 被真正刪除。平常不必這樣做：reflog 預設保留 90 天（無法到達的紀錄 30 天），過期後物件還有約 2 週的寬限期才會被 gc 清掉，給你反悔的機會。',do:s=>{ delete s.L.c.C4; }}]},
+  {cmd:'git gc --prune=now',out:'Counting objects: 9, done.\nCompressing objects: 100% done.',hl:['z:L'],text:'無法到達的 C4 被真正刪除。平常不必這樣做：reflog 預設保留 90 天（無法到達的紀錄 30 天），之後無法到達的物件還要再放滿約 2 週（依物件的修改時間計算）才會被 gc 清掉，給你反悔的機會。',do:s=>{ delete s.L.c.C4; }}]},
 {id:'blame',cat:'底層與工具',name:'git blame',days:['30'],
  desc:'逐行顯示檔案內容最後是由哪個 commit、哪位作者修改的。',
  usage:[['git blame [file]','逐行顯示作者'],['git blame -L 10,20 [file]','只看第 10～20 行']],
@@ -579,12 +581,12 @@ function render(s, hl=[]){
   }
   for(const [k,g] of live) if(!seen.has(k) && !g._gone){
     g.style.opacity=0; g._gone=true;
-    g._t=setTimeout(()=>{ g.remove(); live.delete(k); },800);
+    g._t=setTimeout(()=>{ g.remove(); if(live.get(k)===g) live.delete(k); },800);
   }
 }
 
 /* ---------- player ---------- */
-let cur, idx=0, timer=null;
+let cur, idx=0, timer=null, startTimer=null;
 function stateAt(i){ const s=cur.init(); for(let j=0;j<i;j++) cur.steps[j].do?.(s); return s; }
 function show(i){
   idx=Math.max(0,Math.min(i,cur.steps.length));
@@ -597,13 +599,13 @@ function show(i){
   $('caption').innerHTML=`<div class="k">${st?`步驟 ${idx} / ${cur.steps.length}`:'初始狀態'}</div>${esc(st?st.text:cur.intro)}`;
   $('dots').innerHTML=Array.from({length:cur.steps.length+1},(_,k)=>`<i class="${k<=idx?'on':''}"></i>`).join('');
 }
-function stop(){ clearInterval(timer); timer=null; $('play').textContent='▶ 播放'; }
+function stop(){ clearTimeout(startTimer); clearInterval(timer); timer=null; $('play').textContent='▶ 播放'; }
 function play(){
   if(timer) return stop();
   if(idx>=cur.steps.length) show(0);
   $('play').textContent='⏸ 暫停';
   timer=setInterval(()=>{ if(idx>=cur.steps.length) return stop(); show(idx+1); }, 3200);
-  setTimeout(()=>{ if(timer && idx===0) show(1); }, 700);
+  startTimer=setTimeout(()=>{ if(timer && idx===0) show(1); }, 700);
 }
 function pick(id){
   stop(); cur=CMDS.find(c=>c.id===id)||CMDS[0];
@@ -614,7 +616,8 @@ function pick(id){
   $('days').innerHTML=cur.days.map(d=>`<a href="https://github.com/doggy8088/Learn-Git-in-30-days/blob/master/zh-tw/${d}.md" target="_blank" rel="noopener">第 ${+d} 天：${esc(DAY[d]||'')}</a>`).join('');
   $('usage').innerHTML=cur.usage.map(([a,b])=>`<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('');
   try{ history.replaceState(null,'','#'+cur.id); }catch(e){}
-  show(0); play();
+  show(0);
+  if(!matchMedia('(prefers-reduced-motion: reduce)').matches) play();
 }
 
 const cats=[...new Set(CMDS.map(c=>c.cat))];
@@ -624,7 +627,7 @@ $('sel').onchange=e=>pick(e.target.value);
 $('nav').onclick=e=>{ const b=e.target.closest('.cmd'); if(b) pick(b.dataset.id); };
 $('q').oninput=e=>{ const q=e.target.value.toLowerCase(); document.querySelectorAll('.cmd').forEach(b=>b.hidden=!b.textContent.toLowerCase().includes(q)); };
 $('first').onclick=()=>{stop();show(0)}; $('prev').onclick=()=>{stop();show(idx-1)}; $('next').onclick=()=>{stop();show(idx+1)}; $('play').onclick=play;
-addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT') return;
+addEventListener('keydown',e=>{ if(e.target.closest('input, select') || (e.key===' ' && e.target.closest('button, a'))) return;
   if(e.key==='ArrowRight'){stop();show(idx+1)} else if(e.key==='ArrowLeft'){stop();show(idx-1)} else if(e.key===' '){e.preventDefault();play()} });
 
 // self-check: every step of every command replays without throwing
